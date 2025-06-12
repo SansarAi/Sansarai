@@ -1,1 +1,21 @@
-<h1>Dashboard</h1>{% if feedback %}<pre>{{ feedback }}</pre>{% endif %}
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Sansarai Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans px-8 py-6">
+  <h1 class="text-3xl font-bold text-blue-700">Welcome to your Dashboard</h1>
+  <p class="text-sm text-gray-600 mt-1">Use the tools below to run compliance checks, view reports, and manage your account.</p>
+  <div class="mt-6">
+    <a href="/create-checkout-session"><button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Upgrade to Pro</button></a>
+  </div>
+  {% if feedback %}
+  <div class="mt-6 p-4 bg-green-100 border border-green-400 rounded">
+    <strong class="text-green-800">Message:</strong>
+    <pre class="text-sm mt-2">{{ feedback }}</pre>
+  </div>
+  {% endif %}
+</body>
+</html>
