@@ -145,6 +145,67 @@ TEMPLATE = """<!doctype html>
 <p>{{ report['gpt_feedback']|safe }}</p>
 <p><a href="/">🔄 Start Over</a></p>
 {% endif %}
+
+<hr>
+<h2>Optional: Upload a Document for Compliance Review</h2>
+<form method="post" enctype="multipart/form-data">
+    <input type="hidden" name="regulation" value="{{ selected_reg }}">
+    <input type="file" name="uploaded_file" accept=".txt">
+    <input type="submit" value="Analyze Document">
+</form>
+{% if doc_feedback %}
+<h3>📄 Document Review Result:</h3>
+<p>{{ doc_feedback|safe }}</p>
+{% endif %}
+
+<hr>
+<h2>Or Ask the Compliance Agent to Analyze a Document Based on Your Goal</h2>
+<form method="post" enctype="multipart/form-data">
+    <input type="hidden" name="regulation" value="{{ selected_reg }}">
+    <label>Describe your goal:</label><br>
+    <textarea name="user_goal" rows="4" cols="60" placeholder="E.g., Identify all risks under GDPR in this document."></textarea><br>
+    <input type="file" name="agent_file" accept=".txt">
+    <input type="submit" value="Run Compliance Agent">
+</form>
+{% if agent_feedback %}
+<h3>🧠 Agent Output:</h3>
+<p>{{ agent_feedback|safe }}</p>
+{% endif %}
+<!doctype html>
+<title>Sansarai Compliance Check</title>
+<h1>AI Compliance Self-Assessment</h1>
+<form method="post">
+    <label for="regulation">Choose Regulation:</label>
+    <select name="regulation" onchange="this.form.submit()" required>
+        <option value="">-- Select --</option>
+        {% for r in unique_regs %}
+        <option value="{{ r }}" {% if selected_reg == r %}selected{% endif %}>{{ r }}</option>
+        {% endfor %}
+    </select>
+</form>
+
+{% if rules %}
+<form method="post">
+    <input type="hidden" name="regulation" value="{{ selected_reg }}">
+    {% for rule in rules %}
+    <p>
+        <label>{{ rule.question }}</label><br>
+        <small>{{ rule.description }}</small><br>
+        <input type="radio" name="{{ rule.id }}" value="yes" required> Yes
+        <input type="radio" name="{{ rule.id }}" value="no"> No
+    </p>
+    {% endfor %}
+    <input type="submit" value="Generate Report">
+</form>
+{% endif %}
+
+{% if report %}
+<hr>
+<h2>Compliance Score: {{ report['score'] }}%</h2>
+<h3>GPT Recommendations:</h3>
+<p>{{ report['gpt_feedback']|safe }}</p>
+<p><a href="/">🔄 Start Over</a></p>
+{% endif %}
 """
 
 @app.route('/', methods=['GET', 'POST'])
@@ -156,12 +217,34 @@ def home():
 
     if request.method == 'POST' and rules:
         answers = {k: v for k, v in request.form.items() if k.isdigit()}
-        score = score_compliance(answers, rules)
-        failed_rules = [r for r in rules if answers.get(str(r['id'])) != "yes"]
-        gpt_feedback = generate_gpt_feedback(failed_rules)
-        report = {"score": score, "gpt_feedback": gpt_feedback}
+        if answers:
+            score = score_compliance(answers, rules)
+            failed_rules = [r for r in rules if answers.get(str(r['id'])) != "yes"]
+            gpt_feedback = generate_gpt_feedback(failed_rules) if failed_rules else "✅ All checks passed! No critical issues found."
+            report = {"score": score, "gpt_feedback": gpt_feedback}
 
     return render_template_string(TEMPLATE, rules=rules, selected_reg=selected_reg, unique_regs=unique_regs, report=report)
+
+
+def analyze_uploaded_doc(text, selected_reg):
+    prompt = (
+        "Analyze the following document for AI compliance issues based on " + selected_reg + ". "
+        "Return a compliance score out of 100 and a breakdown of key concerns.\n\nDocument:\n" + text[:2000]
+    )
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are an expert AI compliance officer reviewing internal policy docs."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=700
+        )
+        return response['choices'][0]['message']['content']
+    except Exception as e:
+        return f"⚠️ Document feedback error: {e}"
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
