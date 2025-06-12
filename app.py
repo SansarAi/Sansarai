@@ -1,152 +1,93 @@
 
-from flask import Flask, render_template, request, redirect, url_for, session, send_file, flash
+from flask import Flask, render_template, request, redirect, url_for, send_file
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, login_user, login_required, logout_user, current_user, UserMixin
-import os, tempfile, pdfplumber
-from docx import Document
-import openai
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+import openai, os, uuid, pdfplumber
 from fpdf import FPDF
+from docx import Document
 import csv
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
 app = Flask(__name__)
-app.secret_key = "supersecret"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///sansarai.db"
-app.config["UPLOAD_FOLDER"] = tempfile.gettempdir()
+app.secret_key = "secret"
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///users.db"
+app.config["UPLOAD_FOLDER"] = "uploads"
 db = SQLAlchemy(app)
-login_manager = LoginManager(app)
-login_manager.login_view = "login"
+
+login_manager = LoginManager()
+login_manager.init_app(app)
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(120), nullable=False)
+    email = db.Column(db.String(150), unique=True)
+    password = db.Column(db.String(150))
     pro = db.Column(db.Boolean, default=False)
-
-class Report(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    content = db.Column(db.Text)
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    if request.method == "POST":
-        email = request.form["email"]
-        password = request.form["password"]
-        if User.query.filter_by(email=email).first():
-            flash("Email already registered.")
-            return redirect(url_for("register"))
-        new_user = User(email=email, password=password)
-        db.session.add(new_user)
-        db.session.commit()
-        flash("Registration successful.")
-        return redirect(url_for("login"))
-    return render_template("register.html")
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        email = request.form["email"]
-        password = request.form["password"]
-        user = User.query.filter_by(email=email, password=password).first()
-        if user:
-            login_user(user)
-            return redirect(url_for("dashboard"))
-        flash("Invalid credentials.")
-    return render_template("login.html")
-
-@app.route("/logout")
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for("login"))
-
-def extract_text(file_path):
-    if file_path.endswith(".pdf"):
-        with pdfplumber.open(file_path) as pdf:
-            return "\n".join(page.extract_text() or '' for page in pdf.pages)
-    elif file_path.endswith(".docx"):
-        doc = Document(file_path)
-        return "\n".join(p.text for p in doc.paragraphs)
-    else:
-        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-            return f.read()
-
-@app.route("/dashboard", methods=["GET", "POST"])
-@login_required
-def dashboard():
-    feedback = None
-    if request.method == "POST" and 'agent_file' in request.files:
-        file = request.files["agent_file"]
-        user_goal = request.form["user_goal"]
-        if file and user_goal:
-            path = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
-            file.save(path)
-            content = extract_text(path)
-            prompt = (
-                f"You are a compliance AI agent.\n"
-                f"USER GOAL: {user_goal}\n"
-                "DOCUMENT CONTENT:\n" + content[:2000] + "\n\n"
-                "Respond with:\n"
-                "1. Compliance Score (0–100)\n"
-                "2. Risk Breakdown\n"
-                "3. Action Plan"
-            )
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are an AI compliance agent."},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=800
-            )
-            feedback = response['choices'][0]['message']['content']
-            with open(os.path.join(app.config['UPLOAD_FOLDER'], "agent_report.txt"), "w") as f:
-                f.write(feedback)
-            new_report = Report(user_id=current_user.id, content=feedback)
-            db.session.add(new_report)
-            db.session.commit()
-    reports = Report.query.filter_by(user_id=current_user.id).all()
-    return render_template("dashboard.html", feedback=feedback, reports=reports)
-
-@app.route("/download-agent-report-pdf")
-@login_required
-def download_pdf():
-    path_txt = os.path.join(app.config['UPLOAD_FOLDER'], "agent_report.txt")
-    path_pdf = os.path.join(app.config['UPLOAD_FOLDER'], "agent_report.pdf")
-    if not os.path.exists(path_txt):
-        return "No report available."
-    with open(path_txt, "r") as f:
-        content = f.read()
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    for line in content.split("\n"):
-        pdf.multi_cell(0, 10, line)
-    pdf.output(path_pdf)
-    return send_file(path_pdf, as_attachment=True)
-
-@app.route("/download-compliance-score-csv")
-@login_required
-def download_csv():
-    path_csv = os.path.join(app.config['UPLOAD_FOLDER'], "compliance_score.csv")
-    with open(path_csv, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["Metric", "Value"])
-        writer.writerow(["Compliance Score", "See report"])
-    return send_file(path_csv, as_attachment=True)
-
-
-@app.route("/")
+@app.route("/", methods=["GET", "POST"])
 def home():
+    feedback = ""
+    score = None
+    if request.method == "POST":
+        regulation = request.form.get("regulation")
+        text = request.form.get("text")
+        prompt = f"Assess this system against the {regulation}. Give a compliance score out of 100 and suggestions.\n\n{text}"
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        feedback = response.choices[0].message["content"]
+        score = sum(int(s) for s in feedback.split() if s.isdigit() and int(s) <= 100)
+        session_id = str(uuid.uuid4())
+
+        # Save report as CSV
+        with open(f"uploads/{session_id}.csv", "w") as f:
+            writer = csv.writer(f)
+            writer.writerow(["Regulation", "Score", "Feedback"])
+            writer.writerow([regulation, score, feedback[:100].replace("\n", " ")])
+
+        # Save as PDF
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        pdf.multi_cell(0, 10, feedback)
+        pdf.output(f"uploads/{session_id}.pdf")
+
+        return render_template("report.html", score=score, feedback=feedback, sid=session_id)
     return render_template("home.html")
 
+@app.route("/upload", methods=["POST"])
+def upload():
+    file = request.files["file"]
+    if file.filename.endswith(".pdf"):
+        with pdfplumber.open(file) as pdf:
+            text = "\n".join([page.extract_text() for page in pdf.pages if page.extract_text()])
+    elif file.filename.endswith(".docx"):
+        doc = Document(file)
+        text = "\n".join([p.text for p in doc.paragraphs])
+    else:
+        return "Unsupported file"
+    return render_template("home.html", text=text)
 
+@app.route("/report/<sid>/csv")
+def download_csv(sid):
+    return send_file(f"uploads/{sid}.csv", as_attachment=True)
+
+@app.route("/report/<sid>/pdf")
+def download_pdf(sid):
+    return send_file(f"uploads/{sid}.pdf", as_attachment=True)
+
+@app.route("/dashboard")
+@login_required
+def dashboard():
+    return render_template("dashboard.html")
+
+@app.route("/login")
+def login(): return render_template("login.html")
 
 @app.route("/pricing")
 def pricing(): return render_template("pricing.html")
@@ -157,46 +98,7 @@ def faq(): return render_template("faq.html")
 @app.route("/contact")
 def contact(): return render_template("contact.html")
 
-
-
-import stripe
-from dotenv import load_dotenv
-load_dotenv()
-
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-
-@app.route("/create-checkout-session", methods=["POST"])
-@login_required
-def create_checkout_session():
-    try:
-        checkout_session = stripe.checkout.Session.create(
-            payment_method_types=["card"],
-            mode="payment",
-            line_items=[{
-                "price_data": {
-                    "currency": "usd",
-                    "product_data": {"name": "Sansarai Pro Subscription"},
-                    "unit_amount": 4900,
-                },
-                "quantity": 1,
-            }],
-            success_url=url_for("upgrade_success", _external=True),
-            cancel_url=url_for("dashboard", _external=True),
-            customer_email=current_user.email
-        )
-        return redirect(checkout_session.url)
-    except Exception as e:
-        return str(e)
-
-@app.route("/upgrade-success")
-@login_required
-def upgrade_success():
-    current_user.pro = True
-    db.session.commit()
-    return render_template("dashboard.html", feedback="✅ Your account has been upgraded to Pro.")
-
-
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), debug=True)
+    app.run(debug=True)

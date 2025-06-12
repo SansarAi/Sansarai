@@ -2,8 +2,6 @@ Flask
 Flask-Login
 Flask-SQLAlchemy
 openai
-fpdf
 pdfplumber
 python-docx
-stripe
-python-dotenv
+fpdf

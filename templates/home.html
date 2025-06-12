@@ -1,41 +1,15 @@
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Sansarai – AI Compliance Agent</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-50 text-gray-800 font-sans">
-  <div class="max-w-4xl mx-auto px-4 py-16 text-center">
-    <h1 class="text-5xl font-bold text-blue-700 mb-4">🧠 Sansarai</h1>
-    <p class="text-xl mb-6">Your AI-powered compliance agent for automated risk, regulation, and audit readiness.</p>
-    <p class="text-gray-600 mb-10">Built to help teams stay aligned with the EU AI Act, GDPR, and beyond – instantly assess your models, upload policies, and generate regulator-ready reports.</p>
-    <div class="space-x-4">
-      <a href="/register">
-        <button class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">Get Started</button>
-      </a>
-      <a href="/login">
-        <button class="border border-blue-600 text-blue-700 px-6 py-3 rounded-lg hover:bg-blue-100">Login</button>
-      </a>
-    </div>
-  </div>
-  <div class="max-w-6xl mx-auto px-4 py-12">
-    <h2 class="text-2xl font-semibold mb-6 text-center">Why Sansarai?</h2>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
-      <div>
-        <h3 class="font-bold text-lg">⚖️ Instant Risk Scoring</h3>
-        <p class="text-sm text-gray-600 mt-1">Upload an AI policy or project. Get compliance score + risk assessment in seconds.</p>
-      </div>
-      <div>
-        <h3 class="font-bold text-lg">📄 GPT-Driven Reports</h3>
-        <p class="text-sm text-gray-600 mt-1">Auto-generate detailed reports referencing actual regulation sections.</p>
-      </div>
-      <div>
-        <h3 class="font-bold text-lg">💼 Audit-Ready Storage</h3>
-        <p class="text-sm text-gray-600 mt-1">Download reports as PDF/CSV, keep history logged per team or client.</p>
-      </div>
-    </div>
-  </div>
-</body>
-</html>
+<h1>AI Compliance Self-Assessment</h1>
+<form method="POST">
+  <select name="regulation">
+    <option value="EU AI Act">EU AI Act</option>
+    <option value="UK AI Principles">UK AI Principles</option>
+  </select><br>
+  <textarea name="text" rows="10" cols="80" placeholder="Paste your system description or upload below..."></textarea><br>
+  <button type="submit">Run Assessment</button>
+</form>
+<form action="/upload" method="POST" enctype="multipart/form-data">
+  <input type="file" name="file">
+  <button type="submit">Upload Document</button>
+</form>
+{% if text %}<textarea rows="10" cols="80">{{ text }}</textarea>{% endif %}
