@@ -1,4 +1,7 @@
-flask
-openai==0.28
+Flask
+Flask-Login
+Flask-SQLAlchemy
+openai
+fpdf
 pdfplumber
 python-docx
