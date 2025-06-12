@@ -1,4 +1,1 @@
 flask
-openai
-python-docx
-PyPDF2
