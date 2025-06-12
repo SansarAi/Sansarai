@@ -4,7 +4,6 @@ import openai
 import os
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
-
 app = Flask(__name__)
 
 regulation_rules_v2 = [
@@ -18,22 +17,6 @@ regulation_rules_v2 = [
     },
     {
         "id": 2,
-        "category": "privacy",
-        "regulation": "GDPR",
-        "question": "Do you obtain explicit consent before collecting personal data for automated decision-making?",
-        "description": "Per Article 22, automated profiling without consent is prohibited.",
-        "severity": "high"
-    },
-    {
-        "id": 3,
-        "category": "accountability",
-        "regulation": "ISO 42001",
-        "question": "Do you maintain an AI risk register or log?",
-        "description": "ISO recommends documenting risks and controls for each system.",
-        "severity": "medium"
-    },
-    {
-        "id": 4,
         "category": "bias/fairness",
         "regulation": "EU AI Act",
         "question": "Have you tested your model for discriminatory bias across protected attributes?",
@@ -41,7 +24,47 @@ regulation_rules_v2 = [
         "severity": "high"
     },
     {
+        "id": 3,
+        "category": "human oversight",
+        "regulation": "EU AI Act",
+        "question": "Can a human override or stop the AI system in case of malfunction or risk?",
+        "description": "Mandatory for high-risk systems (Article 14).",
+        "severity": "high"
+    },
+    {
+        "id": 4,
+        "category": "data governance",
+        "regulation": "EU AI Act",
+        "question": "Do you document the quality and relevance of your training data?",
+        "description": "Critical for high-risk systems under Article 10.",
+        "severity": "medium"
+    },
+    {
         "id": 5,
+        "category": "privacy",
+        "regulation": "GDPR",
+        "question": "Do you obtain explicit consent before collecting personal data for automated decision-making?",
+        "description": "Per Article 22, automated profiling without consent is prohibited.",
+        "severity": "high"
+    },
+    {
+        "id": 6,
+        "category": "data minimization",
+        "regulation": "GDPR",
+        "question": "Do you only collect data strictly necessary for the AI function?",
+        "description": "Mandated by Article 5(1)(c) of the GDPR.",
+        "severity": "medium"
+    },
+    {
+        "id": 7,
+        "category": "access rights",
+        "regulation": "GDPR",
+        "question": "Can users request access or deletion of data used in automated decisions?",
+        "description": "Required by Articles 15 and 17.",
+        "severity": "high"
+    },
+    {
+        "id": 8,
         "category": "explainability",
         "regulation": "U.S. AI Executive Order",
         "question": "Can your AI system explain its decisions in plain language to end users?",
@@ -49,12 +72,12 @@ regulation_rules_v2 = [
         "severity": "medium"
     },
     {
-        "id": 6,
-        "category": "human oversight",
-        "regulation": "EU AI Act",
-        "question": "Can a human override or stop the AI system in case of malfunction or risk?",
-        "description": "Mandatory for high-risk systems (Article 14).",
-        "severity": "high"
+        "id": 9,
+        "category": "accountability",
+        "regulation": "U.S. AI Executive Order",
+        "question": "Do you document and assign accountability for AI failures or complaints?",
+        "description": "Supports public trust and governance.",
+        "severity": "medium"
     }
 ]
 
@@ -87,8 +110,7 @@ def generate_gpt_feedback(failed_rules):
     except Exception as e:
         return f"⚠️ GPT feedback unavailable: {e}"
 
-TEMPLATE = """
-<!doctype html>
+TEMPLATE = """<!doctype html>
 <title>Sansarai Compliance Check</title>
 <h1>AI Compliance Self-Assessment</h1>
 <form method="post">
