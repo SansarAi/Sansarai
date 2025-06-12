@@ -1,7 +1,4 @@
-Flask
-Flask-Login
-Flask-SQLAlchemy
-openai
+flask
+openai==0.28
 pdfplumber
 python-docx
-fpdf
