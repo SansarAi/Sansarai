@@ -68,14 +68,10 @@ def score_compliance(answers, rules):
     return round(score / total_weight * 100)
 
 def generate_gpt_feedback(failed_rules):
-   prompt = (
-    "As an AI compliance consultant, provide actionable compliance advice based on the following failed rules:\\n" +
-    "\\n".join([f"- {r['question']} (from {r['regulation']}, severity: {r['severity']})" for r in failed_rules]) +
-    "\\nGive step-by-step guidance for each issue based on applicable regulations."
-        "
-".join([f"- {r['question']} (from {r['regulation']}, severity: {r['severity']})" for r in failed_rules]) +
-        "
-Give step-by-step guidance for each issue based on applicable regulations."
+    prompt = (
+        "As an AI compliance consultant, provide actionable compliance advice based on the following failed rules:\n"
+        + "\n".join([f"- {r['question']} (from {r['regulation']}, severity: {r['severity']})" for r in failed_rules])
+        + "\nGive step-by-step guidance for each issue based on applicable regulations."
     )
     try:
         response = openai.ChatCompletion.create(
