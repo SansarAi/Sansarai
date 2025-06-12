@@ -1,0 +1,32 @@
+
+<!DOCTYPE html><html><head><title>Pricing - Sansarai</title><script src="https://cdn.tailwindcss.com"></script></head>
+<body class="px-8 py-16 text-center font-sans">
+  <h1 class="text-4xl font-bold mb-4 text-blue-700">Pricing</h1>
+  <p class="text-gray-600 mb-8">Simple pricing for growing teams</p>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+    <div class="border p-6 rounded-lg shadow">
+      <h2 class="text-xl font-semibold">Free</h2>
+      <p class="text-gray-600">Basic risk analysis</p>
+      <p class="text-3xl font-bold my-4">$0</p>
+      <ul class="text-sm text-gray-500 mb-4">
+        <li>✔ 3 reports/month</li><li>✔ PDF export</li>
+      </ul><a href="/register" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Start Free</a>
+    </div>
+    <div class="border p-6 rounded-lg shadow-lg bg-blue-50">
+      <h2 class="text-xl font-semibold text-blue-700">Pro</h2>
+      <p class="text-gray-600">Unlimited compliance</p>
+      <p class="text-3xl font-bold my-4">$49<span class="text-sm">/mo</span></p>
+      <ul class="text-sm text-gray-500 mb-4">
+        <li>✔ Unlimited reports</li><li>✔ CSV + PDF exports</li><li>✔ Priority support</li>
+      </ul><form action="/create-checkout-session" method="POST"><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Upgrade with Stripe</button></form>
+    </div>
+    <div class="border p-6 rounded-lg shadow">
+      <h2 class="text-xl font-semibold">Enterprise</h2>
+      <p class="text-gray-600">Custom plans</p>
+      <p class="text-3xl font-bold my-4">Let’s talk</p>
+      <ul class="text-sm text-gray-500 mb-4">
+        <li>✔ API Access</li><li>✔ Team permissions</li><li>✔ Dedicated advisor</li>
+      </ul><a href="/contact" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-900">Contact Us</a>
+    </div>
+  </div>
+</body></html>

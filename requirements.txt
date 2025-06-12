@@ -5,3 +5,5 @@ openai
 fpdf
 pdfplumber
 python-docx
+stripe
+python-dotenv

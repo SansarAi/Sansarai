@@ -22,6 +22,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(120), nullable=False)
+    pro = db.Column(db.Boolean, default=False)
 
 class Report(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -139,6 +140,61 @@ def download_csv():
         writer.writerow(["Metric", "Value"])
         writer.writerow(["Compliance Score", "See report"])
     return send_file(path_csv, as_attachment=True)
+
+
+@app.route("/")
+def home():
+    return render_template("home.html")
+
+
+
+@app.route("/pricing")
+def pricing(): return render_template("pricing.html")
+
+@app.route("/faq")
+def faq(): return render_template("faq.html")
+
+@app.route("/contact")
+def contact(): return render_template("contact.html")
+
+
+
+import stripe
+from dotenv import load_dotenv
+load_dotenv()
+
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+
+@app.route("/create-checkout-session", methods=["POST"])
+@login_required
+def create_checkout_session():
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            mode="payment",
+            line_items=[{
+                "price_data": {
+                    "currency": "usd",
+                    "product_data": {"name": "Sansarai Pro Subscription"},
+                    "unit_amount": 4900,
+                },
+                "quantity": 1,
+            }],
+            success_url=url_for("upgrade_success", _external=True),
+            cancel_url=url_for("dashboard", _external=True),
+            customer_email=current_user.email
+        )
+        return redirect(checkout_session.url)
+    except Exception as e:
+        return str(e)
+
+@app.route("/upgrade-success")
+@login_required
+def upgrade_success():
+    current_user.pro = True
+    db.session.commit()
+    return render_template("dashboard.html", feedback="✅ Your account has been upgraded to Pro.")
+
 
 if __name__ == "__main__":
     with app.app_context():
