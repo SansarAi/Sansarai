@@ -1,0 +1,4 @@
+flask
+openai==0.28
+pdfplumber
+python-docx
