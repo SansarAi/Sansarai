@@ -65,7 +65,7 @@ def get_gpt_recommendations(answers: Dict[int, bool], rules: List[Dict]) -> str:
     )
     try:
         response = openai.ChatCompletion.create(
-           model="gpt-4o",
+           model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful compliance consultant."},
                 {"role": "user", "content": prompt}
